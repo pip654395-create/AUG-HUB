@@ -1,0 +1,529 @@
+-- Roblox Fly GUI Script (Fixed & Working)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+-- Remove the old GUI
+if PlayerGui:FindFirstChild("FlyGui") then
+    PlayerGui.FlyGuiV3:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlyGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- ==================== 1. Key System tab ====================
+local KeySystemFrame = Instance.new("Frame")
+KeySystemFrame.Size = UDim2.new(0, 240, 0, 195)
+KeySystemFrame.Position = UDim2.new(0.5, -120, 0.4, -97)
+KeySystemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+KeySystemFrame.BorderSizePixel = 0
+KeySystemFrame.Active = true
+KeySystemFrame.Draggable = true
+KeySystemFrame.Parent = ScreenGui
+
+local KeyCorner = Instance.new("UICorner")
+KeyCorner.CornerRadius = UDim.new(0, 10)
+KeyCorner.Parent = KeySystemFrame
+
+local KeyTitle = Instance.new("TextLabel")
+KeyTitle.Size = UDim2.new(1, 0, 0, 35)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Text = "Please Enter Key"
+KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyTitle.TextSize = 16
+KeyTitle.Font = Enum.Font.SourceSansBold
+KeyTitle.Parent = KeySystemFrame
+
+local KeyBox = Instance.new("TextBox")
+KeyBox.Size = UDim2.new(0.85, 0, 0, 35)
+KeyBox.Position = UDim2.new(0.075, 0, 0.25, 0)
+KeyBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyBox.PlaceholderText = "Enter Key here..."
+KeyBox.Text = ""
+KeyBox.TextSize = 14
+KeyBox.Font = Enum.Font.SourceSansBold
+KeyBox.Parent = KeySystemFrame
+
+local KeyBoxCorner = Instance.new("UICorner")
+KeyBoxCorner.CornerRadius = UDim.new(0, 6)
+KeyBoxCorner.Parent = KeyBox
+
+-- Bottom GET KEY
+local GetKeyBtn = Instance.new("TextButton")
+GetKeyBtn.Size = UDim2.new(0.85, 0, 0, 30)
+GetKeyBtn.Position = UDim2.new(0.075, 0, 0.47, 0)
+GetKeyBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+GetKeyBtn.Text = "GET KEY"
+GetKeyBtn.TextSize = 13
+GetKeyBtn.Font = Enum.Font.SourceSansBold
+GetKeyBtn.Parent = KeySystemFrame
+
+local GetKeyCorner = Instance.new("UICorner")
+GetKeyCorner.CornerRadius = UDim.new(0, 6)
+GetKeyCorner.Parent = GetKeyBtn
+
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Size = UDim2.new(0.85, 0, 0, 35)
+SubmitBtn.Position = UDim2.new(0.075, 0, 0.67, 0)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(50, 170, 80)
+SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SubmitBtn.Text = "SUBMIT"
+SubmitBtn.TextSize = 14
+SubmitBtn.Font = Enum.Font.SourceSansBold
+SubmitBtn.Parent = KeySystemFrame
+
+local SubmitCorner = Instance.new("UICorner")
+SubmitCorner.CornerRadius = UDim.new(0, 6)
+SubmitCorner.Parent = SubmitBtn
+
+
+-- ==================== 2. Main tab Frame (Menu) ====================
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 180, 0, 270)
+MainFrame.Position = UDim2.new(0.35, 0, 0.22, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false 
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -35, 0, 30)
+TitleLabel.Position = UDim2.new(0, 5, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "AUG HUB"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 16
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = MainFrame
+
+local ToggleMinimizeButton = Instance.new("TextButton")
+ToggleMinimizeButton.Size = UDim2.new(0, 25, 0, 25)
+ToggleMinimizeButton.Position = UDim2.new(1, -30, 0, 3)
+ToggleMinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleMinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleMinimizeButton.Text = "-"
+ToggleMinimizeButton.TextSize = 16
+ToggleMinimizeButton.Font = Enum.Font.SourceSansBold
+ToggleMinimizeButton.Parent = MainFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 5)
+MinCorner.Parent = ToggleMinimizeButton
+
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, 0, 1, -30)
+Container.Position = UDim2.new(0, 0, 0, 30)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Size = UDim2.new(0.85, 0, 0, 30)
+SpeedBox.Position = UDim2.new(0.075, 0, 0, 10)
+SpeedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedBox.Text = "50"
+SpeedBox.TextSize = 14
+SpeedBox.Font = Enum.Font.SourceSansBold
+SpeedBox.Parent = Container
+
+local BoxCorner = Instance.new("UICorner")
+BoxCorner.CornerRadius = UDim.new(0, 6)
+BoxCorner.Parent = SpeedBox
+
+local SubSpeedBtn = Instance.new("TextButton")
+SubSpeedBtn.Size = UDim2.new(0.40, 0, 0, 25)
+SubSpeedBtn.Position = UDim2.new(0.075, 0, 0, 45)
+SubSpeedBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+SubSpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SubSpeedBtn.Text = "-"
+SubSpeedBtn.TextSize = 16
+SubSpeedBtn.Font = Enum.Font.SourceSansBold
+SubSpeedBtn.Parent = Container
+
+local SubCorner = Instance.new("UICorner")
+SubCorner.CornerRadius = UDim.new(0, 5)
+SubCorner.Parent = SubSpeedBtn
+
+local AddSpeedBtn = Instance.new("TextButton")
+AddSpeedBtn.Size = UDim2.new(0.40, 0, 0, 25)
+AddSpeedBtn.Position = UDim2.new(0.525, 0, 0, 45)
+AddSpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
+AddSpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddSpeedBtn.Text = "+"
+AddSpeedBtn.TextSize = 16
+AddSpeedBtn.Font = Enum.Font.SourceSansBold
+AddSpeedBtn.Parent = Container
+
+local AddCorner = Instance.new("UICorner")
+AddCorner.CornerRadius = UDim.new(0, 5)
+AddCorner.Parent = AddSpeedBtn
+
+local FlyButton = Instance.new("TextButton")
+FlyButton.Size = UDim2.new(0.85, 0, 0, 35)
+FlyButton.Position = UDim2.new(0.075, 0, 0, 75)
+FlyButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyButton.Text = "Fly: OFF"
+FlyButton.TextSize = 14
+FlyButton.Font = Enum.Font.SourceSansBold
+FlyButton.Parent = Container
+
+local BtnCorner1 = Instance.new("UICorner")
+BtnCorner1.CornerRadius = UDim.new(0, 6)
+BtnCorner1.Parent = FlyButton
+
+local LightButton = Instance.new("TextButton")
+LightButton.Size = UDim2.new(0.85, 0, 0, 35)
+LightButton.Position = UDim2.new(0.075, 0, 0, 115)
+LightButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+LightButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LightButton.Text = "Light: OFF"
+LightButton.TextSize = 14
+LightButton.Font = Enum.Font.SourceSansBold
+LightButton.Parent = Container
+
+local BtnCorner2 = Instance.new("UICorner")
+BtnCorner2.CornerRadius = UDim.new(0, 6)
+BtnCorner2.Parent = LightButton
+
+local ESPButton = Instance.new("TextButton")
+ESPButton.Size = UDim2.new(0.85, 0, 0, 35)
+ESPButton.Position = UDim2.new(0.075, 0, 0, 155)
+ESPButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+ESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ESPButton.Text = "ESP: OFF"
+ESPButton.TextSize = 14
+ESPButton.Font = Enum.Font.SourceSansBold
+ESPButton.Parent = Container
+
+local BtnCorner3 = Instance.new("UICorner")
+BtnCorner3.CornerRadius = UDim.new(0, 6)
+BtnCorner3.Parent = ESPButton
+
+local LockButton = Instance.new("TextButton")
+LockButton.Size = UDim2.new(0.85, 0, 0, 35)
+LockButton.Position = UDim2.new(0.075, 0, 0, 195)
+LockButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+LockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LockButton.Text = "Lock UP/DOWN: OFF"
+LockButton.TextSize = 12
+LockButton.Font = Enum.Font.SourceSansBold
+LockButton.Parent = Container
+
+local LockCorner = Instance.new("UICorner")
+LockCorner.CornerRadius = UDim.new(0, 6)
+LockButton.Parent = Container -- Adjusted parent structure contextually
+
+
+-- ==================== 3. UP tab and DOWN ====================
+local UpDownFrame = Instance.new("Frame")
+UpDownFrame.Size = UDim2.new(0, 90, 0, 150)
+UpDownFrame.Position = UDim2.new(0.70, 0, 0.25, 0)
+UpDownFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+UpDownFrame.BackgroundTransparency = 0.5
+UpDownFrame.BorderSizePixel = 0
+UpDownFrame.Active = true
+UpDownFrame.Visible = false
+UpDownFrame.Parent = ScreenGui
+
+local UpDownCorner = Instance.new("UICorner")
+UpDownCorner.CornerRadius = UDim.new(0, 8)
+UpDownCorner.Parent = UpDownFrame
+
+local UpButton = Instance.new("TextButton")
+UpButton.Size = UDim2.new(1, -6, 0, 68)
+UpButton.Position = UDim2.new(0, 3, 0, 3)
+UpButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+UpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+UpButton.Text = "UP ⬆"
+UpButton.TextSize = 16
+UpButton.Font = Enum.Font.SourceSansBold
+UpButton.Parent = UpDownFrame
+
+local UpCorner = Instance.new("UICorner")
+UpCorner.CornerRadius = UDim.new(0, 6)
+UpCorner.Parent = UpButton
+
+local DownButton = Instance.new("TextButton")
+DownButton.Size = UDim2.new(1, -6, 0, 68)
+DownButton.Position = UDim2.new(0, 3, 0, 76)
+DownButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DownButton.Text = "DOWN ⬇"
+DownButton.TextSize = 16
+DownButton.Font = Enum.Font.SourceSansBold
+DownButton.Parent = UpDownFrame
+
+local DownCorner = Instance.new("UICorner")
+DownCorner.CornerRadius = UDim.new(0, 6)
+DownCorner.Parent = DownButton
+
+
+-- ==================== 4. Verification system Key ====================
+GetKeyBtn.MouseButton1Click:Connect(function()
+    local link = "https://bstshrt.com/u/9tvxf"
+    if setclipboard then
+        setclipboard(link)
+        GetKeyBtn.Text = "COPIED LINK!"
+        task.wait(1.5)
+        GetKeyBtn.Text = "GET KEY"
+    else
+        GetKeyBtn.Text = "Unsupported"
+    end
+end)
+
+SubmitBtn.MouseButton1Click:Connect(function()
+    if KeyBox.Text == "Key-25355" then
+        KeySystemFrame:Destroy() 
+        MainFrame.Visible = true  
+        UpDownFrame.Visible = true 
+    else
+        KeyBox.Text = ""
+        KeyBox.PlaceholderText = "Wrong Key!"
+    end
+end)
+
+
+-- ==================== Tab drag code UP/DOWN ====================
+local dragging, dragInput, dragStart, startPos
+local locked = false
+
+UpDownFrame.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not locked then
+        dragging = true
+        dragStart = input.Position
+        startPos = UpDownFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UpDownFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging and not locked then
+        local delta = input.Position - dragStart
+        UpDownFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+
+-- Various process variables
+local flying = false
+local lighting = false
+local espEnabled = false
+local minimized = false
+local movingUp = false
+local movingDown = false
+local bv, bg, pointLight
+local camera = Workspace.CurrentCamera
+
+LockButton.MouseButton1Click:Connect(function()
+    locked = not locked
+    if locked then
+        LockButton.Text = "Lock UP/DOWN: ON"
+        LockButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    else
+        LockButton.Text = "Lock UP/DOWN: OFF"
+        LockButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    end
+end)
+
+ToggleMinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        Container.Visible = false
+        MainFrame.Size = UDim2.new(0, 180, 0, 30)
+        ToggleMinimizeButton.Text = "+"
+    else
+        Container.Visible = true
+        MainFrame.Size = UDim2.new(0, 180, 0, 270)
+        ToggleMinimizeButton.Text = "-"
+    end
+end)
+
+SubSpeedBtn.MouseButton1Click:Connect(function()
+    local currentSpeed = tonumber(SpeedBox.Text) or 50
+    SpeedBox.Text = tostring(math.max(10, currentSpeed - 10))
+end)
+
+AddSpeedBtn.MouseButton1Click:Connect(function()
+    local currentSpeed = tonumber(SpeedBox.Text) or 50
+    SpeedBox.Text = tostring(currentSpeed + 10)
+end)
+
+UpButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        movingUp = true
+    end
+end)
+UpButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        movingUp = false
+    end
+end)
+
+DownButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        movingDown = true
+    end
+end)
+DownButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        movingDown = false
+    end
+end)
+
+LightButton.MouseButton1Click:Connect(function()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    
+    lighting = not lighting
+    if lighting then
+        LightButton.Text = "Light: ON"
+        LightButton.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+        
+        pointLight = Instance.new("PointLight")
+        pointLight.Brightness = 5
+        pointLight.Range = 25
+        pointLight.Color = Color3.fromRGB(255, 255, 255)
+        pointLight.Parent = character.HumanoidRootPart
+    else
+        LightButton.Text = "Light: OFF"
+        LightButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        if pointLight then 
+            pointLight:Destroy() 
+            pointLight = nil
+        end
+    end
+end)
+
+ESPButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    if espEnabled then
+        ESPButton.Text = "ESP: ON"
+        ESPButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+    else
+        ESPButton.Text = "ESP: OFF"
+        ESPButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("Head") then
+                local tag = player.Character.Head:FindFirstChild("ESP_Tag")
+                if tag then tag:Destroy() end
+            end
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if espEnabled then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                local head = player.Character.Head
+                if not head:FindFirstChild("ESP_Tag") then
+                    local billBoard = Instance.new("BillboardGui")
+                    billBoard.Name = "ESP_Tag"
+                    billBoard.Size = UDim2.new(0, 100, 0, 40)
+                    billBoard.StudsOffset = Vector3.new(0, 2.5, 0)
+                    billBoard.AlwaysOnTop = true
+                    billBoard.Parent = head
+                    
+                    local textLabel = Instance.new("TextLabel")
+                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                    textLabel.BackgroundTransparency = 1
+                    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    textLabel.TextStrokeTransparency = 0
+                    textLabel.TextSize = 14
+                    textLabel.Font = Enum.Font.SourceSansBold
+                    textLabel.Text = player.Name
+                    textLabel.Parent = billBoard
+                end
+            end
+        end
+    end
+end)
+
+FlyButton.MouseButton1Click:Connect(function()
+    flying = not flying
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local rootPart = character.HumanoidRootPart
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
+    if flying then
+        FlyButton.Text = "Fly: ON"
+        FlyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        if humanoid then humanoid.PlatformStand = true end
+        
+        bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = rootPart
+        
+        bg = Instance.new("BodyGyro")
+        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.CFrame = rootPart.CFrame
+        bg.Parent = rootPart
+        
+        task.spawn(function()
+            while flying do
+                RunService.RenderStepped:Wait()
+                local speed = tonumber(SpeedBox.Text) or 50
+                if rootPart and bv and bg and humanoid then
+                    bg.CFrame = camera.CFrame
+                    local moveDir = humanoid.MoveDirection
+                    local velocity = Vector3.new(0, 0, 0)
+                    
+                    if moveDir.Magnitude > 0 then
+                        velocity = velocity + (camera.CFrame:VectorToWorldSpace(camera.CFrame:VectorToObjectSpace(moveDir)) * speed)
+                    end
+                    
+                    if movingUp then
+                        velocity = velocity + Vector3.new(0, speed, 0)
+                    elseif movingDown then
+                        velocity = velocity + Vector3.new(0, -speed, 0)
+                    end
+                    
+                    bv.Velocity = velocity
+                end
+            end
+        end)
+    else
+        flying = false
+        movingUp = false
+        movingDown = false
+        FlyButton.Text = "Fly: OFF"
+        FlyButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        
+        if humanoid then humanoid.PlatformStand = false end
+        if bv then bv:Destroy() end
+        if bg then bg:Destroy() end
+    end
+end)
