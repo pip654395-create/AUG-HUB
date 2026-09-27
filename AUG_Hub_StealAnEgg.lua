@@ -276,7 +276,7 @@ local W=T()h={[ "godmode" ]= false ,[ "autoGlide" ]= true ,[ "autoHatch" ]= true
 [ "batchStealCount" ]= 0 ,[ "isBatchPlacing" ]= false ,[ "isHatching" ]= false ;
 [ "autoFarmLoop" ]= false ,[ "pureTweenFarm" ]= false ;
 [ "glidingToTarget" ]= false ;
-[ "securingEgg" ]= false ,[ "glideSpeed" ]=O();[ "eggSpeedBypass" ]= true ,[ "eggCarrySpeed" ]= 64 ;
+[ "securingEgg" ]= false ,[ "glideSpeed" ]=O();[ "eggSpeedBypass" ]= true ,[ "eggCarrySpeed" ]= 120 ;
 [ "selectedZones" ]=W.selectedZones ;
 [ "selectedRarities" ]=W.selectedRarities ;
 [ "alwaysCollectSecretPlus" ]=W.alwaysCollectSecretPlus ,[ "minRarityTier" ]=W.minRarityTier ,[ "autoTreadmill" ]=(W.autoTreadmill ~= false );
@@ -767,6 +767,19 @@ if typeof(hookmetamethod)== "function" and not _G._DesyncAntiRagdollHooked then
                 end
                 if y== "Sit" and(u== true and((h.pureTweenFarm or h.autoFarmLoop or h.isReturning or h.glidingToTarget )))then
                     return nil
+                end
+                -- Block game from slowing WalkSpeed while carrying eggs
+                if y== "WalkSpeed" and h and h.eggSpeedBypass and not h.onTreadmill then
+                    local holding = false
+                    pcall(function()
+                        if type(e4) == "function" and e4() then holding = true end
+                    end)
+                    if holding then
+                        local target = math.clamp(tonumber(h.eggCarrySpeed) or 120, 16, 200)
+                        if typeof(u) == "number" and u < target then
+                            return e(r, y, target)
+                        end
+                    end
                 end
             end
         end
@@ -3938,22 +3951,43 @@ y.Heartbeat :Connect(function(...)
             y.Sit = false y:ChangeState(Enum.HumanoidStateType.Running )
         end
     end
-    -- Egg carry speed bypass: game slows you when holding eggs — force WalkSpeed back up
-    if y and h and h.eggSpeedBypass and not h.onTreadmill and not h.holdingEggForGuard then
+    -- Strong egg-carry speed bypass (game forces low WalkSpeed every frame)
+    if y and h and h.eggSpeedBypass and not h.onTreadmill then
         local holding = false
         pcall(function()
-            if type(w4) == "function" and w4() then holding = true end
-            if not holding and type(e4) == "function" then
+            -- Any egg tool in hand
+            if type(e4) == "function" then
                 local tool = e4()
                 if tool then holding = true end
             end
+            -- Or backpack/character egg via m()
+            if not holding and e then
+                for _, child in ipairs(e:GetChildren()) do
+                    if child:IsA("Tool") and type(m) == "function" and m(child) then
+                        holding = true
+                        break
+                    end
+                end
+            end
+            -- Drop button visible = carrying
+            if not holding then
+                local pg = o:FindFirstChild("PlayerGui")
+                if pg then
+                    for _, gui in ipairs(pg:GetDescendants()) do
+                        if (gui:IsA("TextButton") or gui:IsA("TextLabel")) and gui.Visible then
+                            local t = string.lower(tostring(gui.Text or gui.Name or ""))
+                            if t == "drop" or string.find(t, "drop") then
+                                holding = true
+                                break
+                            end
+                        end
+                    end
+                end
+            end
         end)
         if holding then
-            local targetSpeed = tonumber(h.eggCarrySpeed) or 64
-            if targetSpeed < 16 then targetSpeed = 16 end
-            if y.WalkSpeed < targetSpeed then
-                y.WalkSpeed = targetSpeed
-            end
+            local targetSpeed = math.clamp(tonumber(h.eggCarrySpeed) or 120, 16, 200)
+            y.WalkSpeed = targetSpeed
         end
     end
     local u=r.Position
@@ -5471,7 +5505,7 @@ CharTab:Slider({
     Title = "Egg Carry WalkSpeed",
     Desc = "WalkSpeed while holding eggs (default 64).",
     Step = 2,
-    Value = { Min = 16, Max = 200, Default = math.clamp(tonumber(h.eggCarrySpeed) or 64, 16, 200) },
+    Value = { Min = 16, Max = 200, Default = math.clamp(tonumber(h.eggCarrySpeed) or 120, 16, 200) },
     Callback = function(v)
         h.eggCarrySpeed = math.clamp(math.floor(tonumber(v) or 64), 16, 200)
     end,
