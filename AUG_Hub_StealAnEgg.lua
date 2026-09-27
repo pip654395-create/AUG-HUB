@@ -276,7 +276,7 @@ local W=T()h={[ "godmode" ]= false ,[ "autoGlide" ]= true ,[ "autoHatch" ]= true
 [ "batchStealCount" ]= 0 ,[ "isBatchPlacing" ]= false ,[ "isHatching" ]= false ;
 [ "autoFarmLoop" ]= false ,[ "pureTweenFarm" ]= false ;
 [ "glidingToTarget" ]= false ;
-[ "securingEgg" ]= false ,[ "glideSpeed" ]=O();
+[ "securingEgg" ]= false ,[ "glideSpeed" ]=O();[ "eggSpeedBypass" ]= true ,[ "eggCarrySpeed" ]= 64 ;
 [ "selectedZones" ]=W.selectedZones ;
 [ "selectedRarities" ]=W.selectedRarities ;
 [ "alwaysCollectSecretPlus" ]=W.alwaysCollectSecretPlus ,[ "minRarityTier" ]=W.minRarityTier ,[ "autoTreadmill" ]=(W.autoTreadmill ~= false );
@@ -3938,6 +3938,24 @@ y.Heartbeat :Connect(function(...)
             y.Sit = false y:ChangeState(Enum.HumanoidStateType.Running )
         end
     end
+    -- Egg carry speed bypass: game slows you when holding eggs — force WalkSpeed back up
+    if y and h and h.eggSpeedBypass and not h.onTreadmill and not h.holdingEggForGuard then
+        local holding = false
+        pcall(function()
+            if type(w4) == "function" and w4() then holding = true end
+            if not holding and type(e4) == "function" then
+                local tool = e4()
+                if tool then holding = true end
+            end
+        end)
+        if holding then
+            local targetSpeed = tonumber(h.eggCarrySpeed) or 64
+            if targetSpeed < 16 then targetSpeed = 16 end
+            if y.WalkSpeed < targetSpeed then
+                y.WalkSpeed = targetSpeed
+            end
+        end
+    end
     local u=r.Position
     local w=w4()
     if u.Y < 45 then
@@ -5438,6 +5456,27 @@ CharTab:Slider({
     end,
 })
 
+CharTab:Toggle({
+    Title = "Egg Carry Speed Bypass",
+    Desc = "When holding an egg, keep high WalkSpeed so you are not slowed down.",
+    Value = h.eggSpeedBypass ~= false,
+    Callback = function(state)
+        AUGPlayToggleSound(state)
+        h.eggSpeedBypass = state
+        pcall(x)
+    end,
+})
+
+CharTab:Slider({
+    Title = "Egg Carry WalkSpeed",
+    Desc = "WalkSpeed while holding eggs (default 64).",
+    Step = 2,
+    Value = { Min = 16, Max = 200, Default = math.clamp(tonumber(h.eggCarrySpeed) or 64, 16, 200) },
+    Callback = function(v)
+        h.eggCarrySpeed = math.clamp(math.floor(tonumber(v) or 64), 16, 200)
+    end,
+})
+
 -- Settings
 SettingsTab:Section({ Title = "Appearance" })
 
@@ -5839,6 +5878,28 @@ task.spawn(function()
     pcall(C4)
     pcall(function()
         local char = o.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and not hum:GetAttribute("AUG_EggSpeedHooked") then
+                hum:SetAttribute("AUG_EggSpeedHooked", true)
+                hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+                    if not h or not h.eggSpeedBypass or h.onTreadmill or h.holdingEggForGuard then return end
+                    local holding = false
+                    pcall(function()
+                        if type(e4) == "function" and e4() then holding = true end
+                    end)
+                    if holding then
+                        local target = tonumber(h.eggCarrySpeed) or 64
+                        if hum.WalkSpeed < target then
+                            hum.WalkSpeed = target
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+    pcall(function()
+        local char = o.Character
         if not char then return end
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
@@ -5881,6 +5942,25 @@ o.CharacterAdded:Connect(function(char)
         pcall(D4)
         pcall(n4)
         pcall(C4)
+        -- Re-apply egg speed if game tries to slow WalkSpeed
+        pcall(function()
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+                    if not h or not h.eggSpeedBypass or h.onTreadmill or h.holdingEggForGuard then return end
+                    local holding = false
+                    pcall(function()
+                        if type(e4) == "function" and e4() then holding = true end
+                    end)
+                    if holding then
+                        local target = tonumber(h.eggCarrySpeed) or 64
+                        if hum.WalkSpeed < target then
+                            hum.WalkSpeed = target
+                        end
+                    end
+                end)
+            end
+        end)
         -- Restore normal movement (no A4 desync, no forced godmode)
         pcall(function()
             local hum = char:FindFirstChildOfClass("Humanoid")
