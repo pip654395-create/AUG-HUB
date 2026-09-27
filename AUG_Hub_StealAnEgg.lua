@@ -3992,8 +3992,8 @@ local Gk={[ "EN" ]={[ "StatusTagReady" ]= "Status: Ready" ,[ "Tabs" ]={[ "Farm" 
 [ "TranspDesc" ]= "Adjust background transparency of the UI window (0% - 90%)" ;
 [ "ThemeTitle" ]= "Select Theme" ;
 [ "SecPerformance" ]= "Performance & Graphics" ,[ "PerformanceTitle" ]= "Ultra Potato Mode (Maximum FPS Boost)" ,[ "PerformanceDesc" ]= "Disables textures, meshes, lights, shadows, effects and particles for maximum FPS" ;
-[ "Disable3DTitle" ]= "Disable 3D Rendering (GPU Saver 95%)" ,[ "Disable3DDesc" ]= "Freezes 3D viewport rendering to drop GPU usage to ~1%. Perfect for overnight farming!" ,[ "LangTitle" ]= "Language" ,[ "BtnTranslate" ]= "Switch to Thai" ;
-[ "DescTranslate" ]= "Switch interface language to Thai" ,[ "SecSystem" ]= "System Controls" ;
+[ "Disable3DTitle" ]= "Disable 3D Rendering (GPU Saver 95%)" ,[ "Disable3DDesc" ]= "Freezes 3D viewport rendering to drop GPU usage to ~1%. Perfect for overnight farming!" ,[ "LangTitle" ]= "Language" ,[ "BtnTranslate" ]= "Switch to Khmer" ;
+[ "DescTranslate" ]= "Switch interface language to Khmer" ,[ "SecSystem" ]= "System Controls" ;
 [ "AntiAFKTitle" ]= "Anti-AFK (Double-Esc 10m / Mobile)" ,[ "AntiAFKDesc" ]= "Double-Esc menu pulse every 10m + Mobile touch + PC jitter resets idle timer safely without Idled" ,[ "ResetTitle" ]= "Reset Character State" ,[ "ResetDesc" ]= "Clear internal states and unlock character movement" ;
 [ "RejoinTitle" ]= "Rejoin Server" ,[ "RejoinDesc" ]= "Reconnect to the same server automatically" ;
 [ "UnloadTitle" ]= "Unload Script" ,[ "UnloadDesc" ]= "Completely terminate all loops and close the interface" };
@@ -5343,6 +5343,35 @@ CharTab:Slider({
 
 -- Settings
 SettingsTab:Section({ Title = "Appearance" })
+
+SettingsTab:Dropdown({
+    Title = "Language / ភាសា",
+    Desc = "Switch UI language between English and Khmer.",
+    Values = { "English", "ខ្មែរ (Khmer)" },
+    Value = (currentLang == "KM") and "ខ្មែរ (Khmer)" or "English",
+    Callback = function(selected)
+        AUGPlayUISound("click")
+        local newLang = "EN"
+        if selected == "ខ្មែរ (Khmer)" or selected == "KM" then
+            newLang = "KM"
+        end
+        currentLang = newLang
+        pcall(x) -- save config
+        pcall(function()
+            if type(wM) == "function" then
+                wM(newLang)
+            end
+        end)
+        pcall(function()
+            WindUI:Notify({
+                Title = "AUG Hub",
+                Content = (newLang == "KM") and "ប្តូរភាសាទៅភាសាខ្មែររួចរាល់!" or "Language switched to English successfully!",
+                Icon = "languages",
+                Duration = 3
+            })
+        end)
+    end,
+})
 
 SettingsTab:Dropdown({
     Title = "Theme",
