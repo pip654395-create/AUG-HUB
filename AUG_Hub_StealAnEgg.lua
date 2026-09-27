@@ -811,7 +811,7 @@ Z4=function(e,...)
     end
     local r=e:FindFirstChildOfClass( "Humanoid" )
     if r then
-        r:SetStateEnabled(Enum.HumanoidStateType.Ragdoll , false )r:SetStateEnabled(Enum.HumanoidStateType.FallingDown , false )r:SetStateEnabled(Enum.HumanoidStateType.Physics , false )r:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding , false )r:SetStateEnabled(Enum.HumanoidStateType.Seated , false )
+        r:SetStateEnabled(Enum.HumanoidStateType.Ragdoll , false )r:SetStateEnabled(Enum.HumanoidStateType.FallingDown , false )r:SetStateEnabled(Enum.HumanoidStateType.Physics , false )r:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding , false )r:SetStateEnabled(Enum.HumanoidStateType.Seated , false )r:SetStateEnabled(Enum.HumanoidStateType.Jumping , true )r:SetStateEnabled(Enum.HumanoidStateType.Freefall , true )r:SetStateEnabled(Enum.HumanoidStateType.Running , true )
         if r.PlatformStand then
             r.PlatformStand = false
         end
@@ -1171,16 +1171,34 @@ b4=function(e,...) h.godmode =e
     local y=r:FindFirstChildOfClass( "Humanoid" )
     if y then
         y:SetStateEnabled(Enum.HumanoidStateType.Dead ,not e)
+        y:SetStateEnabled(Enum.HumanoidStateType.Jumping , true )
+        y:SetStateEnabled(Enum.HumanoidStateType.Freefall , true )
+        y:SetStateEnabled(Enum.HumanoidStateType.Running , true )
         if e and y.Health < 100 then
             y.Health = 100
         end
+        pcall(function()
+            y.JumpPower = math.max(50, y.JumpPower or 50)
+            y.JumpHeight = math.max(7.2, y.JumpHeight or 7.2)
+            y.UseJumpPower = true
+        end)
     end
-    for r,y in ipairs(r:GetDescendants())do
-        if y:IsA( "BasePart" )then
+    for _, part in ipairs(r:GetDescendants()) do
+        if part:IsA( "BasePart" ) then
+            -- Keep collision so player does NOT clip through walls
+            part.CanCollide = true
             if e then
-                y.CanTouch = false y.CanCollide = false
+                -- Only disable touch (trap/hazard immunity), not collision
+                part.CanTouch = false
+            else
+                part.CanTouch = true
             end
         end
+    end
+    -- HumanoidRootPart must always collide
+    local hrp = r:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CanCollide = true
     end
     Z4(r)
 end
@@ -2066,9 +2084,10 @@ f4=function(e,...)
         return false
     end
     pcall(function(...)
+        -- Keep CanCollide so character does not clip through walls
         for r,y in ipairs(r:GetChildren())do
-            if y:IsA( "BasePart" )and y.Name ~= "HumanoidRootPart" then
-                y.CanCollide = false
+            if y:IsA( "BasePart" ) then
+                y.CanCollide = true
             end
         end
     end
@@ -5344,6 +5363,147 @@ CharTab:Slider({
 -- Settings
 SettingsTab:Section({ Title = "Appearance" })
 
+
+-- Language map for WindUI live text swap
+local AUG_UI_STRINGS = {
+    EN = {
+        ["Dashboard"] = "Dashboard",
+        ["AutoFarm"] = "AutoFarm",
+        ["Eggs"] = "Eggs",
+        ["Filters"] = "Filters",
+        ["Character"] = "Character",
+        ["Settings"] = "Settings",
+        ["MAIN"] = "MAIN",
+        ["TOOLS"] = "TOOLS",
+        ["Anti Hit"] = "Anti Hit",
+        ["Auto Steal - Tween"] = "Auto Steal - Tween",
+        ["Auto Steal - Teleport"] = "Auto Steal - Teleport",
+        ["Steal Speed Bypass"] = "Steal Speed Bypass",
+        ["Single Steal"] = "Single Steal",
+        ["Stop AutoFarm"] = "Stop AutoFarm",
+        ["Place Egg"] = "Place Egg",
+        ["Auto Place - Every 5"] = "Auto Place - Every 5",
+        ["Auto Hatch"] = "Auto Hatch",
+        ["Auto Return"] = "Auto Return",
+        ["Auto Treadmill"] = "Auto Treadmill",
+        ["Target Zones"] = "Target Zones",
+        ["Target Rarities"] = "Target Rarities",
+        ["Always Steal Secret+"] = "Always Steal Secret+",
+        ["Godmode"] = "Godmode",
+        ["Get Out Treadmill"] = "Get Out Treadmill",
+        ["Reset Character State"] = "Reset Character State",
+        ["Flight Speed"] = "Flight Speed",
+        ["Theme"] = "Theme",
+        ["Toggle Theme"] = "Toggle Theme",
+        ["Anti AFK"] = "Anti AFK",
+        ["Performance Mode"] = "Performance Mode",
+        ["Disable 3D Rendering"] = "Disable 3D Rendering",
+        ["Unload Script"] = "Unload Script",
+        ["Language / ភាសា"] = "Language / ភាសា",
+        ["Appearance"] = "Appearance",
+        ["Performance"] = "Performance",
+        ["Safety"] = "Safety",
+        ["AutoFarm Modes"] = "AutoFarm Modes",
+        ["Place / Hatch"] = "Place / Hatch",
+        ["Target Filters"] = "Target Filters",
+        ["Refresh AUG ESP"] = "Refresh AUG ESP",
+        ["Change Theme"] = "Change Theme",
+        ["Live status"] = "Live status",
+    },
+    KM = {
+        ["Dashboard"] = "ផ្ទាំងគ្រប់គ្រង",
+        ["AutoFarm"] = "ហ្វាមស្វ័យប្រវត្តិ",
+        ["Eggs"] = "ពង",
+        ["Filters"] = "តម្រង",
+        ["Character"] = "តួអក្សរ",
+        ["Settings"] = "ការកំណត់",
+        ["MAIN"] = "មេ",
+        ["TOOLS"] = "ឧបករណ៍",
+        ["Anti Hit"] = "ការពារការវាយ",
+        ["Auto Steal - Tween"] = "លួចពងស្វ័យប្រវត្តិ (ហោះ)",
+        ["Auto Steal - Teleport"] = "លួចពងស្វ័យប្រវត្តិ (វ៉ាប់)",
+        ["Steal Speed Bypass"] = "ល្បឿនលួច",
+        ["Single Steal"] = "លួចមួយគ្រាប់",
+        ["Stop AutoFarm"] = "បញ្ឈប់ហ្វាម",
+        ["Place Egg"] = "ដាក់ពង",
+        ["Auto Place - Every 5"] = "ដាក់ពងស្វ័យប្រវត្តិ (រាល់ ៥)",
+        ["Auto Hatch"] = "ញាស់ពងស្វ័យប្រវត្តិ",
+        ["Auto Return"] = "ហោះត្រលប់ស្វ័យប្រវត្តិ",
+        ["Auto Treadmill"] = "រត់លើឧបករណ៍រត់ស្វ័យប្រវត្តិ",
+        ["Target Zones"] = "តំបន់គោលដៅ",
+        ["Target Rarities"] = "កម្រិតកម្រ",
+        ["Always Steal Secret+"] = "ប្រមូល Secret+ ជានិច្ច",
+        ["Godmode"] = "របៀបមិនស្លាប់",
+        ["Get Out Treadmill"] = "ចុះពីឧបករណ៍រត់",
+        ["Reset Character State"] = "កំណត់ស្ថានភាពតួឡើងវិញ",
+        ["Flight Speed"] = "ល្បឿនហោះ",
+        ["Theme"] = "រូបរាង",
+        ["Toggle Theme"] = "ប្តូររូបរាង",
+        ["Anti AFK"] = "ការពារ AFK",
+        ["Performance Mode"] = "របៀបប្រសិទ្ធភាព",
+        ["Disable 3D Rendering"] = "បិទការបង្ហាញ 3D",
+        ["Unload Script"] = "បិទស្គ្រីប",
+        ["Language / ភាសា"] = "Language / ភាសា",
+        ["Appearance"] = "រូបរាង",
+        ["Performance"] = "ប្រសិទ្ធភាព",
+        ["Safety"] = "សុវត្ថិភាព",
+        ["AutoFarm Modes"] = "របៀបហ្វាម",
+        ["Place / Hatch"] = "ដាក់ / ញាស់",
+        ["Target Filters"] = "តម្រងគោលដៅ",
+        ["Refresh AUG ESP"] = "ផ្ទុក ESP ឡើងវិញ",
+        ["Change Theme"] = "ប្តូររូបរាង",
+        ["Live status"] = "ស្ថានភាពផ្ទាល់",
+    },
+}
+
+local function AUG_ApplyLanguage(lang)
+    currentLang = lang or "EN"
+    local map = AUG_UI_STRINGS[currentLang] or AUG_UI_STRINGS.EN
+    local reverse = {}
+    -- Build reverse lookup from all languages to key
+    for langCode, strings in pairs(AUG_UI_STRINGS) do
+        for enKey, translated in pairs(strings) do
+            reverse[translated] = enKey
+        end
+    end
+
+    local function translateText(txt)
+        if type(txt) ~= "string" or txt == "" then return txt end
+        local key = reverse[txt] or txt
+        return map[key] or txt
+    end
+
+    local roots = {}
+    pcall(function()
+        table.insert(roots, game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui"))
+    end)
+    pcall(function()
+        table.insert(roots, game:GetService("CoreGui"))
+    end)
+    if gethui then
+        pcall(function() table.insert(roots, gethui()) end)
+    end
+
+    for _, root in ipairs(roots) do
+        if root then
+            for _, obj in ipairs(root:GetDescendants()) do
+                if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                    local t = obj.Text
+                    local newT = translateText(t)
+                    if newT and newT ~= t then
+                        obj.Text = newT
+                    end
+                end
+            end
+        end
+    end
+
+    pcall(x) -- save
+    if type(wM) == "function" then
+        pcall(wM, currentLang)
+    end
+end
+
 SettingsTab:Dropdown({
     Title = "Language / ភាសា",
     Desc = "Switch UI language between English and Khmer.",
@@ -5355,13 +5515,7 @@ SettingsTab:Dropdown({
         if selected == "ខ្មែរ (Khmer)" or selected == "KM" then
             newLang = "KM"
         end
-        currentLang = newLang
-        pcall(x) -- save config
-        pcall(function()
-            if type(wM) == "function" then
-                wM(newLang)
-            end
-        end)
+        AUG_ApplyLanguage(newLang)
         pcall(function()
             WindUI:Notify({
                 Title = "AUG Hub",
