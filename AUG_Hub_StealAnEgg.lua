@@ -271,7 +271,7 @@ local function x(...) pcall(function(...)
     end
     )
 end
-local W=T()h={[ "godmode" ]= true ,[ "autoGlide" ]= true ,[ "autoHatch" ]= true ;
+local W=T()h={[ "godmode" ]= false ,[ "autoGlide" ]= true ,[ "autoHatch" ]= true ;
 [ "autoPlaceEvery5" ]= false ;
 [ "batchStealCount" ]= 0 ,[ "isBatchPlacing" ]= false ,[ "isHatching" ]= false ;
 [ "autoFarmLoop" ]= false ,[ "pureTweenFarm" ]= false ;
@@ -783,20 +783,31 @@ S4=function(e,...) e=e or o.Character
     if not y then
         return
     end
-    for e,r in ipairs(e:GetDescendants())do
-        if r:IsA( "BallSocketConstraint" )or r:IsA( "HingeConstraint" )or r:IsA( "NoCollisionConstraint" )then
-            pcall(function(...) r:Destroy()
-            end
-            )
+    for _, obj in ipairs(e:GetDescendants()) do
+        if obj:IsA( "BallSocketConstraint" )or obj:IsA( "HingeConstraint" )or obj:IsA( "NoCollisionConstraint" )then
+            pcall(function() obj:Destroy() end)
         end
     end
-    for e,r in ipairs(e:GetDescendants())do
-        if r:IsA( "Motor6D" )and(r.Part0 and r.Part1 )then
-            r.Enabled = true
-            local e= "RigidJointWeld_" ..r.Name
-            local y=r.Part1 :FindFirstChild(e)
-            if not y then
-                local y=Instance.new ( "WeldConstraint" )y.Name =e y.Part0 =r.Part0 y.Part1 =r.Part1 y.Parent =r.Part1
+    -- Only force rigid welds while actively farming (prevents ragdoll mid-flight).
+    -- During normal walk/jump, Motor6D must stay free or character freezes.
+    local farming = h and (h.pureTweenFarm or h.autoFarmLoop or h.glidingToTarget or h.isReturning or h.teleporting or h.securingEgg)
+    for _, motor in ipairs(e:GetDescendants()) do
+        if motor:IsA( "Motor6D" ) and motor.Part0 and motor.Part1 then
+            motor.Enabled = true
+            local weldName = "RigidJointWeld_" .. motor.Name
+            local existing = motor.Part1:FindFirstChild(weldName)
+            if farming then
+                if not existing then
+                    local w = Instance.new("WeldConstraint")
+                    w.Name = weldName
+                    w.Part0 = motor.Part0
+                    w.Part1 = motor.Part1
+                    w.Parent = motor.Part1
+                end
+            else
+                if existing then
+                    pcall(function() existing:Destroy() end)
+                end
             end
         end
     end
@@ -1110,7 +1121,7 @@ end
     local e=o.Character
     local r=e and e:FindFirstChild( "HumanoidRootPart" )
     if r then
-        pcall(function(...) r.Anchored = false r.AssemblyLinearVelocity =Vector3.zero r.AssemblyAngularVelocity =Vector3.zero
+        pcall(function(...) r.Anchored = false r.AssemblyLinearVelocity =Vector3.zero r.AssemblyAngularVelocity =Vector3.zero r.CanCollide = true
         end
         )
     end
@@ -1119,12 +1130,30 @@ end
             C4()
         end
     end
-    )pcall(function(...)
-        if Z4 and e then
-            Z4(e)
+    )
+    -- Restore normal walk/jump after farm stops
+    pcall(function()
+        if not e then return end
+        local hum = e:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+            hum.Sit = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+            hum:ChangeState(Enum.HumanoidStateType.Running)
         end
-    end
-    )pcall(function(...)
+        for _, part in ipairs(e:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.CanTouch = true
+            end
+            if part:IsA("WeldConstraint") and string.find(tostring(part.Name), "RigidJointWeld_") then
+                pcall(function() part:Destroy() end)
+            end
+        end
+    end)
+    pcall(function(...)
         if u4 and((h.pureTweenFarm or h.autoFarmLoop ))then
             u4()
         end
@@ -5345,8 +5374,57 @@ CharTab:Button({
     Icon = "rotate-ccw",
     Callback = function()
         AUGPlayUISound("click")
+        pcall(function()
+            if type(T4) == "function" then T4("NONE") end
+        end)
         pcall(D4)
         pcall(u4)
+        pcall(function()
+            local char = o.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.PlatformStand = false
+                hum.Sit = false
+                hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+                hum.WalkSpeed = math.max(16, hum.WalkSpeed)
+                pcall(function()
+                    hum.JumpPower = math.max(50, hum.JumpPower or 50)
+                    hum.JumpHeight = math.max(7.2, hum.JumpHeight or 7.2)
+                end)
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+            end
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Anchored = false
+                    part.CanCollide = true
+                    part.CanTouch = true
+                end
+                if part:IsA("WeldConstraint") and string.find(tostring(part.Name), "RigidJointWeld_") then
+                    pcall(function() part:Destroy() end)
+                end
+            end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.Anchored = false
+                hrp.CanCollide = true
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+            end
+            h.swapped = false
+            h.godmode = false
+        end)
+        pcall(function()
+            WindUI:Notify({
+                Title = "AUG Hub",
+                Content = "Character movement restored (walk / jump / pickup)",
+                Icon = "check",
+                Duration = 3
+            })
+        end)
     end,
 })
 
@@ -5757,25 +5835,82 @@ end)
 
 task.spawn(function()
     task.wait(0.7)
-    pcall(A4)
-    pcall(function() b4(true) end)
+    -- Do NOT auto-desync (A4) or force godmode — keeps walk/jump/egg pickup working
     pcall(C4)
-    if o.Character then
-        pcall(z4, o.Character)
-    end
-    pcall(u4)
+    pcall(function()
+        local char = o.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+            hum.PlatformStand = false
+            hum.Sit = false
+            pcall(function()
+                hum.JumpPower = math.max(50, hum.JumpPower or 50)
+                hum.JumpHeight = math.max(7.2, hum.JumpHeight or 7.2)
+            end)
+        end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.CanTouch = true
+            end
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Anchored = false
+            hrp.CanCollide = true
+            hrp.AssemblyLinearVelocity = Vector3.zero
+        end
+        -- Remove any freeze welds left from previous farm session
+        for _, obj in ipairs(char:GetDescendants()) do
+            if obj:IsA("WeldConstraint") and string.find(obj.Name, "RigidJointWeld_") then
+                pcall(function() obj:Destroy() end)
+            end
+        end
+    end)
 end)
 
 o.CharacterAdded:Connect(function(char)
     task.wait(0.6)
     if h.alive then
+        h.swapped = false
         pcall(D4)
         pcall(n4)
         pcall(C4)
-        pcall(A4)
-        pcall(function() b4(true) end)
-        pcall(z4, char)
-        pcall(u4)
+        -- Restore normal movement (no A4 desync, no forced godmode)
+        pcall(function()
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+                hum.PlatformStand = false
+                hum.Sit = false
+                pcall(function()
+                    hum.JumpPower = math.max(50, hum.JumpPower or 50)
+                    hum.JumpHeight = math.max(7.2, hum.JumpHeight or 7.2)
+                end)
+            end
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                    part.CanTouch = true
+                end
+                if part:IsA("WeldConstraint") and string.find(part.Name, "RigidJointWeld_") then
+                    pcall(function() part:Destroy() end)
+                end
+            end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.Anchored = false
+                hrp.CanCollide = true
+            end
+        end)
     end
 end)
 
