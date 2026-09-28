@@ -131,6 +131,153 @@ do
         task.wait(0.1)
     end
 end
+
+-- ═══════════════════════════════════════════════
+-- ANTI-CHECK / ANTI-DETECT (hardened)
+-- ═══════════════════════════════════════════════
+do
+    local ok, err = pcall(function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local CoreGui = game:GetService("CoreGui")
+        local LP = Players.LocalPlayer
+
+        -- 1) Randomize environment fingerprints
+        local _rng = math.random
+        local function _randStr(n)
+            local t = {}
+            for i = 1, n do
+                t[i] = string.char(_rng(97, 122))
+            end
+            return table.concat(t)
+        end
+
+        -- 2) Multi-executor GUI protect
+        local function protectGui(gui)
+            if not gui then return end
+            pcall(function()
+                if syn and syn.protect_gui then syn.protect_gui(gui) end
+            end)
+            pcall(function()
+                if protect_gui then protect_gui(gui) end
+            end)
+            pcall(function()
+                if fluxus and fluxus.protect_gui then fluxus.protect_gui(gui) end
+            end)
+            pcall(function()
+                if gethui then
+                    gui.Parent = gethui()
+                end
+            end)
+            pcall(function()
+                if hide_gui then hide_gui(gui) end
+            end)
+            pcall(function()
+                -- cloneref CoreGui path when available
+                if cloneref then
+                    local cg = cloneref(CoreGui)
+                    if gui.Parent == CoreGui or gui.Parent == nil then
+                        -- leave as is, already protected above
+                    end
+                end
+            end)
+        end
+
+        -- 3) Soft namecall filter (blocks common AC probe patterns without breaking game)
+        if hookmetamethod and getnamecallmethod and checkcaller then
+            pcall(function()
+                local oldNamecall
+                oldNamecall = hookmetamethod(game, "__namecall", newcclosure and newcclosure(function(self, ...)
+                    local method = getnamecallmethod()
+                    if not checkcaller() then
+                        -- Block only very specific AC-style probes that ask about our GUI/scripts
+                        if method == "FindFirstChild" or method == "FindFirstChildOfClass" or method == "FindFirstChildWhichIsA" then
+                            local args = {...}
+                            local name = tostring(args[1] or "")
+                            local lower = string.lower(name)
+                            if lower:find("aug", 1, true)
+                                or lower:find("ph_ui", 1, true)
+                                or lower:find("synapse", 1, true)
+                                or lower:find("exploit", 1, true)
+                                or lower:find("dex", 1, true)
+                                or lower:find("remote spy", 1, true)
+                                or lower:find("simple spy", 1, true)
+                                or lower:find("infinite yield", 1, true)
+                            then
+                                return nil
+                            end
+                        end
+                        if method == "GetChildren" or method == "GetDescendants" then
+                            -- Don't strip here (too aggressive / breaks game). Only filter known bad names above.
+                        end
+                    end
+                    return oldNamecall(self, ...)
+                end) or function(self, ...)
+                    local method = getnamecallmethod()
+                    if not checkcaller() then
+                        local args = {...}
+                        local name = tostring(args[1] or "")
+                        local lower = string.lower(name)
+                        if (method == "FindFirstChild" or method == "FindFirstChildOfClass") and (
+                            lower:find("aug", 1, true) or lower:find("ph_ui", 1, true)
+                        ) then
+                            return nil
+                        end
+                    end
+                    return oldNamecall(self, ...)
+                end)
+            end)
+        end
+
+        -- 4) Hide common global traces from naive scanners
+        local env = (getgenv and getgenv()) or _G
+        pcall(function()
+            -- Keep functionality but reduce obvious string presence in pairs(_G)
+            if type(env.AugHub) == "table" then
+                local proxy = env.AugHub
+                -- leave AugHub (script needs it) but wipe less critical dumps
+            end
+            env.AugDump = nil
+            env.AugDumpByUser = nil
+        end)
+
+        -- 5) Spoof IsStudio / common flags some ACs check
+        pcall(function()
+            if setfflag then
+                pcall(setfflag, "DebugRunService", "False")
+            end
+        end)
+
+        -- 6) Protect any existing PH_UI / AugWorldGui immediately
+        pcall(function()
+            local function scanAndProtect(parent)
+                if not parent then return end
+                for _, c in ipairs(parent:GetChildren()) do
+                    local n = string.lower(c.Name or "")
+                    if n:find("ph_ui", 1, true) or n:find("aug", 1, true) or n:find("worldgui", 1, true) then
+                        protectGui(c)
+                    end
+                end
+            end
+            if LP then
+                scanAndProtect(LP:FindFirstChild("PlayerGui"))
+            end
+            scanAndProtect(CoreGui)
+            if gethui then
+                local okH, h = pcall(gethui)
+                if okH then scanAndProtect(h) end
+            end
+        end)
+
+        -- 7) Export protect helper for later GUI creation
+        env.__AugProtectGui = protectGui
+    end)
+    if not ok then
+        warn("[AntiCheck] init soft-fail:", err)
+    end
+end
+-- ═══════════════════════════════════════════════
+
 local t1 = {
 	Title = "Aug Hub",
 	Version = "0.1",
@@ -270,8 +417,8 @@ do
             end
 
             str = tostring(LocalPlayer and LocalPlayer.UserId or 0)
-            v48 = "PH_UI_" .. str
-            v49 = "AugWorldGui_" .. str
+            v48 = "CorePkg_" .. string.sub(tostring(str), -4) .. "_" .. tostring(math.random(1000,9999))
+            v49 = "WorldLayer_" .. string.sub(tostring(str), -4) .. "_" .. tostring(math.random(1000,9999))
 
             function v50()
                 return getgenv and getgenv() or _G
@@ -944,8 +1091,14 @@ do
 
         v98 = ScreenGui
         pcall(function()
-            if syn and syn.protect_gui then
-                syn.protect_gui(v98)
+            local env = (getgenv and getgenv()) or _G
+            if type(env.__AugProtectGui) == "function" then
+                env.__AugProtectGui(v98)
+            else
+                if syn and syn.protect_gui then syn.protect_gui(v98) end
+                if protect_gui then protect_gui(v98) end
+                if fluxus and fluxus.protect_gui then fluxus.protect_gui(v98) end
+                if gethui then pcall(function() v98.Parent = gethui() end) end
             end
         end)
 
@@ -11499,6 +11652,22 @@ end;
         return t215[1]
     end
     local function v1217()
+        -- Fast path: Plots folder named by UserId
+        local PlotsFast = workspace:FindFirstChild("Plots")
+        if PlotsFast then
+            local byId = PlotsFast:FindFirstChild(tostring(LocalPlayer.UserId))
+            if byId then
+                local sp = byId:FindFirstChild("SpawnPoint", true) or byId:FindFirstChild("CenterPoint", true)
+                if sp and sp:IsA("BasePart") then
+                    return sp.Position + Vector3.new(0, 4, 0), sp.CFrame, byId, sp
+                end
+                local okP, piv = pcall(function() return byId:GetPivot() end)
+                if okP and typeof(piv) == "CFrame" then
+                    return piv.Position + Vector3.new(0, 4, 0), piv, byId, nil
+                end
+            end
+        end
+
         local u1989
         pcall(function()
             u1989 = require(ReplicatedStorage.Client.PlotState).ResolvePlot()
@@ -20470,6 +20639,10 @@ end;
                 t216.carryUid = v2366
                 t216.heldUid = v2366
                 t216.lockUid = v2366
+                -- Equip egg tool so server registers carry properly
+                if u1103 and type(u1103.WearEggTool) == "function" then
+                    pcall(u1103.WearEggTool, v2366)
+                end
             end
 
             local state = t216.state
@@ -22583,13 +22756,46 @@ end;
                 local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
                 if hum then
                     hum:Move(Vector3.zero, false)
+                    if not t9.Flight then
+                        hum.PlatformStand = false
+                    end
                 end
             end)
 
             local elapsed46 = os.clock()
 
+            -- Actively try to plant/deposit the stolen egg every 0.45s
             if elapsed46 - t216.lastBankTry >= 0.45 then
                 t216.lastBankTry = elapsed46
+                local carryUid = t216.carryUid or t216.heldUid or t216.lockUid
+                if carryUid and u1103 then
+                    pcall(function()
+                        if type(u1103.WearEggTool) == "function" then
+                            u1103.WearEggTool(carryUid)
+                        end
+                    end)
+                    -- Try planting into any free slot on our plot
+                    pcall(function()
+                        if type(u1103.PlantEgg) == "function" then
+                            -- Try common slot indices 1..12
+                            for slot = 1, 12 do
+                                local okPlant, resPlant = pcall(u1103.PlantEgg, carryUid, slot)
+                                if okPlant and resPlant == true then
+                                    v1102("steal", "planted slot", tostring(slot))
+                                    break
+                                end
+                            end
+                            -- Also try without slot / with nil
+                            pcall(u1103.PlantEgg, carryUid)
+                            pcall(u1103.PlantEgg, carryUid, nil)
+                        end
+                    end)
+                    pcall(function()
+                        if type(u1103.DoffEggTool) == "function" then
+                            u1103.DoffEggTool(carryUid)
+                        end
+                    end)
+                end
             end
 
             if not t216.carrying then
@@ -22638,7 +22844,7 @@ end;
                 return
             end
 
-            if v2514 > 4 then
+            if v2514 > 12 then
                 v1102("steal", "Bank timeout, still carrying")
 
                 if t216.state ~= "Return" then
