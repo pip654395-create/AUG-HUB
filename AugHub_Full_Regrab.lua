@@ -22477,34 +22477,112 @@ end;
                     t216.carryStarted = os.clock()
                 end
                 if os.clock() - t216.carryStarted >= 2 then
+                    local uid = t216.heldUid or t216.carryUid or t216.lockUid
                     t216.forceDrop = true
-                    local dropOk = false
+                    local prevAuto = t9.AutoSteal
+                    t9.AutoSteal = false
+
                     pcall(function()
                         if u1103 and type(u1103.DropFieldEgg) == "function" then
-                            u1103.DropFieldEgg("Manual")
-                            dropOk = true
+                            if uid then
+                                pcall(u1103.DropFieldEgg, uid)
+                                pcall(u1103.DropFieldEgg, uid, "Manual")
+                                pcall(u1103.DropFieldEgg, "Manual", uid)
+                            end
+                            pcall(u1103.DropFieldEgg, "Manual")
+                            pcall(u1103.DropFieldEgg)
                         end
                     end)
-                    if not dropOk then
-                        pcall(function()
-                            local rem = v1168 and v1168({ "Remotes" })
-                            local ew = rem and rem.EggWorld
-                            local ask = ew and ew.AskFieldEggDrop
-                            local inv = ask and (ask.InvokeServer or (typeof(ask) == "Instance" and ask.InvokeServer))
-                            if type(inv) == "function" then
-                                inv(ask, { Reason = "Manual" })
-                                dropOk = true
+
+                    pcall(function()
+                        if u1103 and type(u1103.DoffEggTool) == "function" and uid then
+                            u1103.DoffEggTool(uid)
+                        end
+                    end)
+
+                    pcall(function()
+                        if type(v2219) == "function" then
+                            if uid then
+                                pcall(v2219, "EggWorld", "AskFieldEggDrop", { Reason = "Manual", Uid = uid })
+                                pcall(v2219, "EggWorld", "AskFieldEggDrop", uid)
+                                pcall(v2219, "EggWorld", "AskDoffTool", uid)
                             end
-                        end)
-                    end
+                            pcall(v2219, "EggWorld", "AskFieldEggDrop", { Reason = "Manual" })
+                        end
+                    end)
+
+                    pcall(function()
+                        local rem = type(v1168) == "function" and v1168({ "Remotes" })
+                        local ew = rem and rem.EggWorld
+                        if not ew then return end
+                        for _, name in ipairs({ "AskFieldEggDrop", "AskDropFieldEgg", "DropFieldEgg", "AskDoffTool" }) do
+                            local ask = ew[name]
+                            if ask ~= nil then
+                                local inv = (type(ask) == "table" and ask.InvokeServer)
+                                    or (typeof(ask) == "Instance" and ask.InvokeServer)
+                                if type(inv) == "function" then
+                                    if uid then
+                                        pcall(inv, ask, { Reason = "Manual", Uid = uid })
+                                        pcall(inv, ask, uid)
+                                        pcall(inv, ask, uid, "Manual")
+                                    end
+                                    pcall(inv, ask, { Reason = "Manual" })
+                                    pcall(inv, ask)
+                                end
+                                local fire = (type(ask) == "table" and ask.FireServer)
+                                    or (typeof(ask) == "Instance" and ask.FireServer)
+                                if type(fire) == "function" then
+                                    if uid then
+                                        pcall(fire, ask, uid)
+                                        pcall(fire, ask, { Reason = "Manual", Uid = uid })
+                                    end
+                                    pcall(fire, ask, { Reason = "Manual" })
+                                end
+                            end
+                        end
+                    end)
+
+                    pcall(function()
+                        local char = LocalPlayer.Character
+                        local hum = char and char:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            hum:UnequipTools()
+                        end
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") and tool:GetAttribute("ItemType") == "AssetEgg" then
+                                    tool.Parent = LocalPlayer:FindFirstChild("Backpack") or tool.Parent
+                                end
+                            end
+                        end
+                    end)
+
+                    t9.AutoSteal = prevAuto
                     t216.forceDrop = false
+
+                    -- wait briefly for server to process drop
+                    task.wait(0.15)
+
+                    local stillCarry = false
+                    pcall(function()
+                        if t216.liveCarry then
+                            stillCarry = select(1, t216.liveCarry()) == true
+                        end
+                    end)
+
+                    if stillCarry then
+                        v1102("steal", "drop failed, retry next tick", tostring(uid or "?"))
+                        t216.carryStarted = os.clock() - 1.5
+                        return
+                    end
+
                     t216.regrabDone = true
                     t216.regrabs = (t216.regrabs or 0) + 1
                     t216.lockAt = os.clock()
                     if typeof(v2504 and v2504.Position) == "Vector3" then
                         t216.lockPos = v2504.Position
                     end
-                    v1102("steal", "held 2s — drop + re-grab", tostring(t216.lockUid or t216.heldUid or "?"))
+                    v1102("steal", "held 2s — dropped, re-grab", tostring(uid or "?"))
                     t216.carrying = false
                     if t216.state ~= "GoEgg" then
                         v1102("steal", t216.state, "->", "GoEgg", "regrab", t216.target and t216.target.name or "")
